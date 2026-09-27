@@ -847,8 +847,21 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     }
     return null;
   }
+  // 기초용 자료 : 값들이 평균 근처에 모여 있어 암산하기 쉬움 (편차가 작음)
+  function genEasyData(c, n, distinctMin, spread) {
+    const span = c.hi - c.lo; const sp = spread || Math.max(3, Math.min(7, Math.round(span / 6)));
+    for (let t = 0; t < 500; t++) {
+      const m = R(c.lo + sp, c.hi - sp); const d = [];
+      for (let i = 0; i < n - 1; i++) d.push(R(-sp, sp));
+      const last = -sum(d); if (Math.abs(last) > sp) continue; d.push(last);
+      const vals = d.map(x => m + x);
+      if (new Set(vals).size < (distinctMin || n - 1)) continue;
+      return { data: shuffle(vals), m };
+    }
+    return null;
+  }
   T('e_mean', '평균 구하기', '평균', 'mean', { E: 2.2, BE: 0 }, () => {
-    const c = pick(CTX), n = R(4, 7); const g = genMeanData(c, n); if (!g) return null;
+    const c = pick(EASY_C), n = R(4, 6); const g = genEasyData(c, n); if (!g) return null;
     const { data, m } = g, S = sum(data), med = median(data);
     const mc = numMC(m, [med, S / (n - 1), S / (n + 1), m + 1, m - 1], c.u, { intOnly: true, valid: v => v >= 0 });
     return {
@@ -861,7 +874,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
 
   /* ===================== 중앙값 ===================== */
   T('e_med_odd', '중앙값 (홀수 개)', '중앙값', 'median', { E: 1.4 }, () => {
-    const c = pick(CTX), n = pick([5, 7, 9]);
+    const c = pick(EASY_C), n = pick([5, 5, 7]);
     for (let t = 0; t < 300; t++) {
       const vals = Array.from({ length: n }, () => R(c.lo, c.hi));
       if (new Set(vals).size < n - 1) continue;
@@ -879,7 +892,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     return null;
   });
   T('e_med_even', '중앙값 (짝수 개)', '중앙값', 'median', { E: 1.4 }, () => {
-    const c = pick(CTX), n = pick([4, 6, 8, 10]);
+    const c = pick(EASY_C), n = pick([4, 6, 6]);
     for (let t = 0; t < 300; t++) {
       const vals = Array.from({ length: n }, () => R(c.lo, c.hi));
       if (new Set(vals).size < n - 1) continue;
@@ -917,15 +930,16 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     const mi = modeInfo(data); const keys = [...mi.map.keys()].sort((x, y) => x - y);
     return keys.map(k => `${fmt(k)}${u} → ${mi.map.get(k)}번`).join(', ');
   }
-  const MODE_C = CTX.filter(c => c.hi - c.lo >= 8);
+  const EASY_C = CTX.filter(c => c.hi < 100); // 기초 문제는 두 자리 수까지만
+  const MODE_C = EASY_C.filter(c => c.hi - c.lo >= 8);
   T('e_mode', '최빈값 구하기', '최빈값', 'mode', { E: 1.3 }, () => {
     const c = pick(MODE_C);
     for (let t = 0; t < 300; t++) {
-      const k = R(4, 6); const vs = distinctVals(c, k); if (!vs) continue;
-      const f = vs[0], cf = R(2, 4); const data = [];
+      const k = R(3, 5); const vs = distinctVals(c, k); if (!vs) continue;
+      const f = vs[0], cf = R(2, 3); const data = [];
       for (let i = 0; i < cf; i++) data.push(f);
       for (let j = 1; j < k; j++) { const cc = R(1, cf - 1); for (let i = 0; i < cc; i++) data.push(vs[j]); }
-      if (data.length > 12) continue;
+      if (data.length > 8 || data.length < 5) continue;
       const mi = modeInfo(data); if (mi.none || mi.modes.length !== 1 || mi.modes[0] !== f) continue;
       const sh = shuffle(data);
       const sorted = [...mi.map.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
@@ -943,8 +957,8 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
   T('e_mode_multi', '최빈값이 두 개인 자료', '최빈값', 'mode', { E: 0.6 }, () => {
     const c = pick(MODE_C);
     for (let t = 0; t < 300; t++) {
-      const k = R(3, 5); const vs = distinctVals(c, k); if (!vs) continue;
-      const [f1, f2] = asc([vs[0], vs[1]]); const cf = R(2, 3); const data = [];
+      const k = R(3, 4); const vs = distinctVals(c, k); if (!vs) continue;
+      const [f1, f2] = asc([vs[0], vs[1]]); const cf = 2; const data = [];
       for (let i = 0; i < cf; i++) data.push(f1, f2);
       for (let j = 2; j < k; j++) { const cc = R(1, cf - 1); for (let i = 0; i < cc; i++) data.push(vs[j]); }
       const mi = modeInfo(data); if (mi.none || mi.modes.length !== 2) continue;
@@ -964,8 +978,8 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     const c = pick(MODE_C);
     for (let t = 0; t < 300; t++) {
       let data, why;
-      if (Math.random() < 0.5) { const n = R(5, 7); const vs = distinctVals(c, n); if (!vs) continue; data = vs; why = '자료의 값이 모두 다르므로'; }
-      else { const k = R(3, 4); const vs = distinctVals(c, k); if (!vs) continue; data = []; vs.forEach(v => data.push(v, v)); why = '각 값이 모두 2번씩 나타나므로'; }
+      if (Math.random() < 0.5) { const n = R(5, 6); const vs = distinctVals(c, n); if (!vs) continue; data = vs; why = '자료의 값이 모두 다르므로'; }
+      else { const k = 3; const vs = distinctVals(c, k); if (!vs) continue; data = []; vs.forEach(v => data.push(v, v)); why = '각 값이 모두 2번씩 나타나므로'; }
       const mi = modeInfo(data); if (!mi.none) continue;
       const sh = shuffle(data); const s = asc([...new Set(data)]);
       const all = { t: s.map(v => fmt(v) + c.u).join(', '), v: 'M:' + s.map(fmt).join(',') };
@@ -1022,7 +1036,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
         chk: { x, M }, key: `a${x},${M}`,
       };
     }
-    const c = pick(CTX), n = 5; const g = genMeanData(c, n, 4); if (!g) return null;
+    const c = pick(EASY_C), n = 5; const g = genEasyData(c, n, 4); if (!g) return null;
     const { data, m } = g; const i = R(0, n - 1), x = data[i], d = x - m; if (d === 0) return null;
     const mc = numMC(d, [-d, x, d + 1, d - 1], c.u, { intOnly: true });
     return {
@@ -1069,7 +1083,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     return null;
   });
   T('e_dev_neg', '편차가 음수인 변량 세기', '편차', 'devneg', { E: 0.6 }, () => {
-    const c = pick(CTX), n = R(6, 9); const g = genMeanData(c, n, 5); if (!g) return null;
+    const c = pick(EASY_C), n = R(5, 7); const g = genEasyData(c, n, n - 2); if (!g) return null;
     const { data, m } = g; const below = data.filter(v => v < m).length, above = data.filter(v => v > m).length, eq = n - below - above;
     if (below === above) return null;
     const mc = numMC(below, [above, below + eq, n - below], '개', { intOnly: true, valid: v => v >= 0 && v <= n });
@@ -1083,9 +1097,9 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
 
   /* ===================== 두 단계 (쉬움 보스 · 어려움 공통) ===================== */
   T('e2_combo', '대푯값 두 개 구해서 계산하기', '종합', 'combo', { E: 0.3, H: 0.5, BE: 1.2 }, () => {
-    const c = pick(MODE_C), n = R(7, 10);
+    const c = pick(MODE_C), n = R(6, 8);
     for (let t = 0; t < 500; t++) {
-      const g = genMeanData(c, n, 4); if (!g) return null;
+      const g = genEasyData(c, n, 3); if (!g) return null;
       const { data, m } = g; const mi = modeInfo(data); if (mi.none || mi.modes.length !== 1) continue;
       const f = mi.modes[0], med = median(data);
       const v = R(0, 2);
@@ -1250,7 +1264,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     return null;
   });
   T('h_med_add', '자료를 추가한 뒤 중앙값', '중앙값', 'medadd', { H: 0.7 }, () => {
-    const c = pick(CTX), n = pick([5, 7, 9]);
+    const c = pick(CTX), n = pick([5, 5, 7]);
     for (let t = 0; t < 400; t++) {
       const vals = Array.from({ length: n }, () => R(c.lo, c.hi)); if (new Set(vals).size < n) continue;
       const v = R(c.lo, c.hi); if (vals.includes(v)) continue;
@@ -1462,7 +1476,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
   function genStem(simple) {
     const c = pick(SL_CTX);
     for (let t = 0; t < 1500; t++) {
-      const n = simple ? R(9, 13) : R(12, 18); const data = Array.from({ length: n }, () => R(c.lo, c.hi));
+      const n = simple ? R(7, 9) : R(12, 18); const data = Array.from({ length: n }, () => R(c.lo, c.hi));
       const mi = modeInfo(data); if (mi.none || mi.modes.length !== 1 || mi.max < 2) continue;
       const m = mean(data), md = median(data), f = mi.modes[0];
       const ask = simple ? pick(['median', 'mode']) : pick(['mean', 'median', 'mode']);
