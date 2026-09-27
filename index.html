@@ -387,7 +387,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     <p><b>틀린 문제는 다시 나와요</b> — 틀린 유형은 몇 문제 뒤에 숫자만 바뀌어 <b>🔁 다시 도전</b>으로 나와요. 맞히면 보너스!</p>
     <p><b>무기와 진화</b> — 무기는 최대 6개, 레벨 5까지 올릴 수 있어요. 레벨 5 무기와 짝이 되는 강화를 가지고 있으면 <b>전설 보상으로 진화</b>할 수 있어요.</p>
     <p><b>가만히 있으면 위험!</b> — 붉은 원(유성 낙하), 중력 우물, 포위 웨이브, 저격 조준선이 나타나요. 계속 움직여 피하세요.</p>
-    <p><b>보스전</b> — 2분마다 보스가 등장해요. 보스를 쓰러뜨리면 <b>보스 특별 문제</b>와 전설급 보상! 체력이 절반이 되면 보스가 분노해요.</p>
+    <p><b>보스전</b> — 1분 30초마다 보스가 등장해요. 보스를 쓰러뜨리면 <b>보스 특별 문제</b>와 전설급 보상! 체력이 절반이 되면 보스가 분노해요.</p>
     <p><b>난이도</b> — 🌱쉬움은 기초 문제, 🔥어려움은 심화 문제가 섞여 나오고 보상이 더 강해요. 명예의 전당은 난이도별로 따로 기록돼요.</p>
     <p><b>저장</b> — 게임은 자동으로 저장돼요. 창이 꺼져도 같은 학번·이름·난이도로 들어오면 이어서 할 수 있어요. 점수는 <b>게임이 끝났을 때</b>만 명예의 전당에 올라가요.</p>
     <p><b>출제 범위</b> — 평균, 중앙값, 최빈값, 대푯값의 적절성, 편차, 산포도의 뜻 (분산·표준편차는 나오지 않아요)</p>
@@ -609,7 +609,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     { id: 'b12', name: '대푯값 제왕', col: '#ffffff', hp: 3400, r: 54, spd: 46, dmg: 30, p1: ['aim', 'ring', 'laser', 'summon'], p2: ['spiral2', 'flower', 'laser2', 'meteors', 'charge'], rare: true, story: '평균·중앙값·최빈값의 힘을 모두 가진 천문대의 최종 제왕.' },
   ];
 
-  D.XP_NEED = L => Math.round(4 + 10 * L + 3.6 * L * L + 6 * Math.pow(1.28, L));
+  D.XP_NEED = L => Math.round(1 + 4 * L + 2.7 * L * L + 4 * Math.pow(1.28, L));
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else G.GD = D;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -1659,6 +1659,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
   const pickW = list => { let t = 0; for (const x of list) t += x[1]; let r = Math.random() * t; for (const x of list) { r -= x[1]; if (r <= 0) return x[0]; } return list[list.length - 1][0]; };
 
   const WORLD = 2600;
+  const TS = 1.75; // 난이도 진행 속도 (게임 시간 1분 = 난이도 1.45분)
   const CELL = 90;
   const GCOLS = Math.ceil(WORLD / CELL);
 
@@ -1666,15 +1667,15 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
   const hpMul = T => 1 + 0.12 * T + 0.013 * T * T + (T > 20 ? 0.2 * (T - 20) * (T - 20) : 0);
   const dmgMul = T => 0.7 + 0.056 * T + (T > 20 ? 0.03 * (T - 20) * (T - 20) : 0);
   const spdMul = T => Math.min(1.5, 1 + 0.02 * T + (T > 20 ? 0.02 * (T - 20) : 0));
-  const targetAlive = (T, cap) => Math.min(cap, Math.round(6 + 6 * T + 0.35 * T * T));
-  const spawnRate = T => 0.8 + 0.8 * T + 0.06 * T * T;
+  const targetAlive = (T, cap) => Math.min(cap, Math.round(16 + 6 * T + 0.35 * T * T));
+  const spawnRate = T => 2.4 + 0.8 * T + 0.06 * T * T;
 
   function newPlayer(heroId) {
     const h = GD.HEROES[heroId] || GD.HEROES.keeper;
     return {
       x: WORLD / 2, y: WORLD / 2, r: 15, hp: h.hp, maxHp: h.hp,
       baseSpeed: 158, speed: h.speed, might: h.might, area: 1, cdMul: 1, amount: 0, projSpd: 1, duration: 1, baseRegen: 0.3,
-      magnet: 1, baseMagnet: 72, xpMul: 1, crit: 0.03, armor: h.armor, regen: 0, lifesteal: 0, thorns: 0,
+      magnet: 1, baseMagnet: 95, xpMul: 1, crit: 0.03, armor: h.armor, regen: 0, lifesteal: 0, thorns: 0,
       shieldLv: 0, shieldT: 0, shieldOn: false, scoreMul: 1, luck: 0, rescueLv: 0, rescueT: 0, revive: 0,
       inv: 0, level: 1, xp: 0, need: GD.XP_NEED(1), facing: 1, moving: false, vx: 0, vy: 0,
       healBudget: 0, weak: { might: 0, hp: 0, speed: 0, magnet: 0 },
@@ -1687,8 +1688,8 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
       t: 0, pl: newPlayer(opts.hero), weapons: [], passives: {},
       en: [], pp: [], ep: [], gems: [], picks: [], haz: [], holes: [], pmet: [],
       fx: { rings: [], beams: [], bolts: [], parts: [], floats: [], booms: [], texts: [] },
-      boss: null, bossNo: 0, nextBoss: 120, bossWarn: 0,
-      spawnAcc: 0, ev: { meteor: 210, wave: 300, well: 480, elite: 360, gold: 150 },
+      boss: null, bossNo: 0, nextBoss: 90, bossWarn: 0,
+      spawnAcc: 0, ev: { meteor: 150, wave: 210, well: 330, elite: 250, gold: 100 },
       pts: 0, kills: 0, bossKills: 0, quizN: 0, quizC: 0, streak: 0, best: 0,
       pendingLv: 0, stat: { dealt: 0, contact: 0, proj: 0, haz: 0, boom: 0 }, events: [], view: opts.view || { w: 880, h: 590 },
       cap: opts.cap || 170, noFx: !!opts.noFx, uid: 1, grid: null, shake: 0, healAcc: 0,
@@ -1932,7 +1933,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
     return list;
   }
   function spawnWave(S, dt) {
-    const T = S.t / 60; const bossOn = !!S.boss;
+    const T = S.t / 60 * TS; const bossOn = !!S.boss;
     const target = Math.round(targetAlive(T, S.cap) * (bossOn ? 0.45 : 1));
     S.spawnAcc += dt * spawnRate(T) * (bossOn ? 0.45 : 1);
     let alive = 0; for (const e of S.en) if (!e.boss) alive++;
@@ -1946,7 +1947,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
 
   /* ---------------- 환경 이벤트 (가만히 있으면 위험!) ---------------- */
   function envEvents(S, dt) {
-    const T = S.t / 60, pl = S.pl, ev = S.ev;
+    const T = S.t / 60 * TS, pl = S.pl, ev = S.ev;
     if (S.t >= ev.meteor) {
       const n = 1 + Math.floor(T / 6);
       for (let i = 0; i < n; i++) {
@@ -1955,36 +1956,36 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
         const lead = i === 0 ? 0.6 : 0;
         S.haz.push({ k: 'met', x: clamp(pl.x + pl.vx * lead + Math.cos(a) * d, 30, S.W - 30), y: clamp(pl.y + pl.vy * lead + Math.sin(a) * d, 30, S.H - 30), r: 62, t: 1.5, max: 1.5, dmg: Math.round(11 * dmgMul(T)) });
       }
-      ev.meteor = S.t + Math.max(3.2, 9 - 0.27 * T);
+      ev.meteor = S.t + Math.max(3.2, 9 - 0.27 * T) / TS;
     }
     if (S.t >= ev.wave) {
       const cnt = Math.min(64, Math.round(20 + 2.4 * T)); const R = Math.hypot(S.view.w, S.view.h) / 2 + 40;
       const m = T < 8 ? GD.MON.bat : T < 15 ? GD.MON.rock : GD.MON.serpent;
       for (let i = 0; i < cnt; i++) { const a = i * TAU / cnt; const x = clamp(pl.x + Math.cos(a) * R, 20, S.W - 20), y = clamp(pl.y + Math.sin(a) * R, 20, S.H - 20); const e = mkEnemy(S, m, x, y, T, { hpm: 0.8 }); e.beh = 'chase'; }
       emit(S, 'toast', { msg: '⚠ 포위 웨이브! 빈틈으로 빠져나가세요' }); emit(S, 'sfx', { s: 'warn' });
-      ev.wave = S.t + 150;
+      ev.wave = S.t + 105;
     }
     if (T >= 8 && S.t >= ev.well) {
       const a = Math.random() * TAU, d = rand(140, 230);
       S.haz.push({ k: 'well', x: clamp(pl.x + Math.cos(a) * d, 60, S.W - 60), y: clamp(pl.y + Math.sin(a) * d, 60, S.H - 60), r: 240, core: 36, t: 8, max: 8, tick: 0, dmg: Math.round(6 * dmgMul(T)) });
       emit(S, 'toast', { msg: '🌀 중력 우물 발생! 끌려가지 않게 조심' });
-      ev.well = S.t + Math.max(18, 32 - T * 0.4);
+      ev.well = S.t + Math.max(14, 25 - T * 0.4);
     }
     if (S.t >= ev.elite) {
       const n = 1 + Math.floor(T / 10);
       for (let i = 0; i < n; i++) { const [x, y] = spawnPoint(S, 40); mkEnemy(S, GD.MON.elite, x, y, T); }
       emit(S, 'seen', { kind: 'monster', id: 'elite' }); emit(S, 'toast', { msg: '⚔ 엘리트 수호자 출현!' });
-      ev.elite = S.t + 180;
+      ev.elite = S.t + 125;
     }
     if (S.t >= ev.gold) {
       const [x, y] = spawnPoint(S, 20); mkEnemy(S, GD.MON.gold, x, y, T, { hpm: 0.6 }); emit(S, 'seen', { kind: 'monster', id: 'gold' });
-      ev.gold = S.t + rand(70, 110);
+      ev.gold = S.t + rand(55, 80);
     }
   }
 
   /* ---------------- 보스 ---------------- */
   function spawnBoss(S) {
-    const n = S.bossNo; const b = GD.BOSSES[n % GD.BOSSES.length]; const cyc = Math.floor(n / GD.BOSSES.length); const T = S.t / 60;
+    const n = S.bossNo; const b = GD.BOSSES[n % GD.BOSSES.length]; const cyc = Math.floor(n / GD.BOSSES.length); const T = S.t / 60 * TS;
     const [x, y] = spawnPoint(S, 10);
     const hp = b.hp * (0.4 + 0.07 * T + 0.009 * T * T) * (1 + cyc * 1.4) * (S.bossHpMul || 1);
     const e = {
@@ -2058,7 +2059,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
 
   /* ---------------- 적 행동 ---------------- */
   function updateEnemies(S, dt) {
-    const pl = S.pl; const T = S.t / 60;
+    const pl = S.pl; const T = S.t / 60 * TS;
     for (const e of S.en) {
       if (e.dead) continue;
       e.t += dt; if (e.flash > 0) e.flash -= dt; if (e.spawnT > 0) e.spawnT -= dt; if (e.shieldT > 0) e.shieldT -= dt;
@@ -2216,10 +2217,10 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
         for (let k = 0; k < 10; k++) S.gems.push({ x: e.x + rand(-60, 60), y: e.y + rand(-60, 60), v: Math.ceil(e.xp / 10), mag: false });
         S.picks.push({ k: 'heart', x: e.x, y: e.y, v: 40 }); S.picks.push({ k: 'magnet', x: e.x + 30, y: e.y });
         S.shake = 20; S.flash = 0.6; emit(S, 'bossDead', { n: e.n, name: e.def.name });
-        S.nextBoss = S.t + 120; S.ep.length = Math.min(S.ep.length, 40);
+        S.nextBoss = S.t + 90; S.ep.length = Math.min(S.ep.length, 40);
         continue;
       }
-      if (e.beh === 'split' && e.id === 'jelly') { const T = S.t / 60; for (let k = 0; k < 3; k++) mkEnemy(S, GD.MON.mini, e.x + rand(-12, 12), e.y + rand(-12, 12), T).spawnT = 0; }
+      if (e.beh === 'split' && e.id === 'jelly') { const T = S.t / 60 * TS; for (let k = 0; k < 3; k++) mkEnemy(S, GD.MON.mini, e.x + rand(-12, 12), e.y + rand(-12, 12), T).spawnT = 0; }
       S.gems.push({ x: e.x, y: e.y, v: e.xp, mag: false });
       const L = 1 + pl.luck;
       if (e.id === 'gold' || e.id === 'elite') { S.picks.push({ k: 'chest', x: e.x, y: e.y }); S.picks.push({ k: 'heart', x: e.x + 20, y: e.y, v: 30 }); }
@@ -2241,7 +2242,7 @@ input.in:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(111,211,255,.2
       const g = S.gems[i]; const dx = pl.x - g.x, dy = pl.y - g.y, dd = dx * dx + dy * dy;
       if (dd < R2) g.mag = true;
       if (g.mag) { const d = Math.sqrt(dd) || 1; const sp = 260 + (g.sp = (g.sp || 0) + dt * 900); g.x += dx / d * Math.min(sp * dt, d); g.y += dy / d * Math.min(sp * dt, d); }
-      if (dd < (pl.r + 10) ** 2) { gainXp(S, g.v); S.gems[i] = S.gems[S.gems.length - 1]; S.gems.pop(); emit(S, 'sfx', { s: 'gem' }); }
+      if (dd < (pl.r + 10) ** 2) { gainXp(S, g.v * (1 + Math.max(0, 300 - S.t) / 300 * 1.6)); /* 초반 4분 경험치 보너스 */ S.gems[i] = S.gems[S.gems.length - 1]; S.gems.pop(); emit(S, 'sfx', { s: 'gem' }); }
     }
     for (let i = S.picks.length - 1; i >= 0; i--) {
       const p = S.picks[i]; const dx = pl.x - p.x, dy = pl.y - p.y, dd = dx * dx + dy * dy;
